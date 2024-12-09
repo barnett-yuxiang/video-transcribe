@@ -13,6 +13,7 @@ This project processes video files to extract audio and generate subtitles using
 - Python 3.6+
 - ffmpeg
 - whisper
+- argparse (part of Python standard library)
 
 ## Installation
 
@@ -37,7 +38,7 @@ This project processes video files to extract audio and generate subtitles using
 
 ## Usage
 
-1. Place your video files in the `files` directory.
+1. Place your video files (e.g., `example.mp4`) in the `files` directory.
 
 2. Run the script:
     ```sh
@@ -46,15 +47,16 @@ This project processes video files to extract audio and generate subtitles using
 
     The `--timestamps` flag is optional. If provided, the generated subtitles will include timestamps.
 
-3. The extracted audio and generated subtitles will be saved in the [files](http://_vscodecontentref_/0) directory.
+3. The extracted audio and generated subtitles will be saved in the [files](http://_vscodecontentref_/5) directory.
 
 ## Code Overview
 
-- [main.py](http://_vscodecontentref_/1): The main script that processes video files.
-  - [format_timestamp(seconds)](http://_vscodecontentref_/2): Converts seconds to `hh:mm:ss` format.
-  - [extract_audio(video_path, output_path)](http://_vscodecontentref_/3): Extracts audio from a video file.
-  - [transcribe_audio(model, audio_path, include_timestamps)](http://_vscodecontentref_/4): Transcribes audio to subtitles.
-  - [process_video(video_path, output_folder, model_name, include_timestamps)](http://_vscodecontentref_/5): Processes a video file to generate audio and subtitles.
+- [main.py](http://_vscodecontentref_/6): The main script that processes video files.
+  - `format_timestamp(seconds)`: Converts seconds to `hh:mm:ss` format.
+  - `extract_audio(video_path, output_path)`: Extracts audio from a video file.
+  - `transcribe_audio(model, audio_path, include_timestamps)`: Transcribes audio to subtitles.
+  - `process_video(video_path, output_folder, model_name, include_timestamps)`: Processes a video file to generate audio and subtitles.
+  - Uses [argparse](http://_vscodecontentref_/7) to handle command-line arguments.
 
 ## License
 
