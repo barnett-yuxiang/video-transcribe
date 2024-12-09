@@ -19,7 +19,7 @@ def format_timestamp(seconds):
 
 
 def transcribe_video_segment(
-    model, video_path, start_time, duration, include_timestamps
+    model, video_path, start_time, duration, interval, include_timestamps
 ):
     """
     Transcribe a specific segment of a video file.
@@ -29,6 +29,7 @@ def transcribe_video_segment(
         video_path (str): Path to the video file.
         start_time (float): Start time of the segment in seconds.
         duration (float): Duration of the segment in seconds.
+        interval (int): Interval in seconds for splitting text segments.
         include_timestamps (bool): Whether to include timestamps in the output.
 
     Returns:
@@ -45,7 +46,7 @@ def transcribe_video_segment(
     result = model.transcribe(temp_audio_path, word_timestamps=True)
     os.remove(temp_audio_path)  # Clean up temporary file
 
-    # Organize transcription into 5-second segments
+    # Organize transcription into 2-second segments
     lines = []
     current_time = start_time
     segment_text = []
@@ -54,7 +55,7 @@ def transcribe_video_segment(
         word_start = word_info["start"]
         word_text = word_info["text"]
 
-        if word_start >= current_time + 5:
+        if word_start >= current_time + interval:
             if include_timestamps:
                 lines.append(
                     f"[{format_timestamp(current_time)}] {' '.join(segment_text)}"
@@ -62,7 +63,7 @@ def transcribe_video_segment(
             else:
                 lines.append(" ".join(segment_text))
             segment_text = []
-            current_time += 5
+            current_time += interval
 
         segment_text.append(word_text)
 
@@ -81,6 +82,7 @@ def transcribe_videos(
     output_folder,
     model_name="base",
     segment_size_mb=5,
+    interval=2,
     include_timestamps=False,
 ):
     """
@@ -91,6 +93,7 @@ def transcribe_videos(
         output_folder (str): Path to save transcribed .txt files.
         model_name (str): Whisper model name to use for transcription.
         segment_size_mb (int): Maximum size of each segment in MB.
+        interval (int): Interval in seconds for splitting text segments.
         include_timestamps (bool): Whether to include timestamps in the output.
     """
     # Load Whisper model
@@ -125,13 +128,22 @@ def transcribe_videos(
         start_time = 0
         while start_time < duration:
             current_duration = min(segment_duration, duration - start_time)
+            if current_duration < interval and start_time + current_duration < duration:
+                # Merge with the next segment if the remainder is too short
+                current_duration += interval
+
             print(
                 f"Transcribing segment: Start={start_time:.2f}s, Duration={current_duration:.2f}s"
             )
 
             # Transcribe the segment
             lines = transcribe_video_segment(
-                model, input_file_path, start_time, current_duration, include_timestamps
+                model,
+                input_file_path,
+                start_time,
+                current_duration,
+                interval,
+                include_timestamps,
             )
 
             # Append the transcription to the output file
@@ -160,4 +172,6 @@ if __name__ == "__main__":
     output_folder = input_folder
 
     # Run the transcription process
-    transcribe_videos(input_folder, output_folder, include_timestamps=args.timestamps)
+    transcribe_videos(
+        input_folder, output_folder, interval=2, include_timestamps=args.timestamps
+    )
