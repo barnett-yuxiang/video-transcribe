@@ -37,54 +37,39 @@ def extract_audio(video_path, output_path):
     return audio_file
 
 
-def transcribe_audio(model, audio_path, interval=3, include_timestamps=False):
+def transcribe_audio(model, audio_path, include_timestamps=False):
     """
-    Transcribe audio file to subtitles.
+    Transcribe audio file to subtitles with accurate timestamps.
 
     Args:
         model: Whisper model.
         audio_path (str): Path to the audio file.
-        interval (int): Interval in seconds for splitting text segments.
         include_timestamps (bool): Whether to include timestamps in the output.
 
     Returns:
-        list: Transcribed text lines.
+        list: Transcribed text lines with optional timestamps.
     """
     result = model.transcribe(audio_path, word_timestamps=True)
     segments = result.get("segments", [])
 
     lines = []
-    current_time = 0
-    segment_text = []
-
     for segment in segments:
-        word_start = segment["start"]
-        word_text = segment["text"]
+        start_time = segment["start"]
+        end_time = segment["end"]
+        text = segment["text"].strip()
 
-        if word_start >= current_time + interval:
-            if include_timestamps:
-                lines.append(
-                    f"[{format_timestamp(current_time)}] {' '.join(segment_text)}"
-                )
-            else:
-                lines.append(" ".join(segment_text))
-            segment_text = []
-            current_time += interval
-
-        segment_text.append(word_text)
-
-    # Add the last segment
-    if segment_text:
         if include_timestamps:
-            lines.append(f"[{format_timestamp(current_time)}] {' '.join(segment_text)}")
+            lines.append(
+                f"[{format_timestamp(start_time)}-{format_timestamp(end_time)}] {text}"
+            )
         else:
-            lines.append(" ".join(segment_text))
+            lines.append(text)
 
     return lines
 
 
 def process_video(
-    video_path, output_folder, model_name="base", interval=3, include_timestamps=False
+    video_path, output_folder, model_name="base", include_timestamps=False
 ):
     """
     Process a video file to generate audio and subtitles.
@@ -93,7 +78,6 @@ def process_video(
         video_path (str): Path to the video file.
         output_folder (str): Path to save the output files.
         model_name (str): Whisper model name.
-        interval (int): Interval in seconds for splitting text segments.
         include_timestamps (bool): Whether to include timestamps in subtitles.
     """
     print(f"Processing video: {video_path}")
@@ -118,7 +102,7 @@ def process_video(
 
     # Transcribe audio
     print(f"Transcribing audio: {audio_file}")
-    lines = transcribe_audio(model, audio_file, interval, include_timestamps)
+    lines = transcribe_audio(model, audio_file, include_timestamps)
 
     # Save subtitles
     with open(subtitle_file, "w", encoding="utf-8") as f:
@@ -133,12 +117,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--timestamps", action="store_true", help="Include timestamps in subtitles."
     )
-    parser.add_argument(
-        "--interval",
-        type=int,
-        default=3,
-        help="Interval in seconds for splitting text segments.",
-    )
     args = parser.parse_args()
 
     # Define paths
@@ -150,9 +128,4 @@ if __name__ == "__main__":
     for file_name in os.listdir(input_folder):
         if file_name.lower().endswith((".mp4", ".mkv", ".avi", ".mov")):
             video_path = os.path.join(input_folder, file_name)
-            process_video(
-                video_path,
-                output_folder,
-                interval=args.interval,
-                include_timestamps=args.timestamps,
-            )
+            process_video(video_path, output_folder, include_timestamps=args.timestamps)
