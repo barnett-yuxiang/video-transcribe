@@ -25,8 +25,8 @@ This project processes video files to extract audio and generate subtitles using
 
 2. Create a virtual environment and activate it:
     ```sh
-    python -m venv .venv
-    source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
+    python3 -m venv .venv
+    source .venv/bin/activate
     ```
 
 3. Install the required packages:
@@ -48,15 +48,6 @@ This project processes video files to extract audio and generate subtitles using
     The `--timestamps` flag is optional. If provided, the generated subtitles will include timestamps.
 
 3. The extracted audio and generated subtitles will be saved in the [files](http://_vscodecontentref_/5) directory.
-
-## Code Overview
-
-- [main.py](http://_vscodecontentref_/6): The main script that processes video files.
-  - `format_timestamp(seconds)`: Converts seconds to `hh:mm:ss` format.
-  - `extract_audio(video_path, output_path)`: Extracts audio from a video file.
-  - `transcribe_audio(model, audio_path, include_timestamps)`: Transcribes audio to subtitles.
-  - `process_video(video_path, output_folder, model_name, include_timestamps)`: Processes a video file to generate audio and subtitles.
-  - Uses [argparse](http://_vscodecontentref_/7) to handle command-line arguments.
 
 ## License
 
