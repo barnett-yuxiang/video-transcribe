@@ -1,2 +1,5 @@
 .DS_Store
 .venv
+
+files/*.mp4
+files/*.txt
