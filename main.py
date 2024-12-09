@@ -1,7 +1,6 @@
 import os
-import whisper
 import ffmpeg
-from math import ceil
+import whisper
 from datetime import timedelta
 import argparse
 
@@ -18,42 +17,71 @@ def format_timestamp(seconds):
     return str(td)
 
 
-def transcribe_video_segment(
-    model, video_path, start_time, duration, interval, include_timestamps
-):
+def extract_audio(video_path, audio_path, segment_duration=None):
     """
-    Transcribe a specific segment of a video file.
+    Extract audio from a video file.
 
     Args:
-        model: Whisper model for transcription.
         video_path (str): Path to the video file.
-        start_time (float): Start time of the segment in seconds.
-        duration (float): Duration of the segment in seconds.
+        audio_path (str): Path to save the audio file.
+        segment_duration (int): Optional duration of each audio segment in seconds.
+
+    Returns:
+        list: Paths of the generated audio files.
+    """
+    audio_files = []
+
+    if segment_duration:
+        # Split audio into segments
+        video_info = ffmpeg.probe(video_path)
+        total_duration = float(video_info["format"]["duration"])
+        start_time = 0
+        segment_index = 0
+
+        while start_time < total_duration:
+            segment_output = os.path.join(audio_path, f"segment_{segment_index}.wav")
+            ffmpeg.input(video_path, ss=start_time, t=segment_duration).output(
+                segment_output, format="wav", acodec="pcm_s16le", ac=1, ar="16000"
+            ).run(quiet=True)
+            audio_files.append(segment_output)
+            start_time += segment_duration
+            segment_index += 1
+    else:
+        # Extract entire audio
+        audio_file = os.path.join(
+            audio_path, f"{os.path.splitext(os.path.basename(video_path))[0]}.wav"
+        )
+        ffmpeg.input(video_path).output(
+            audio_file, format="wav", acodec="pcm_s16le", ac=1, ar="16000"
+        ).run(quiet=True)
+        audio_files.append(audio_file)
+
+    return audio_files
+
+
+def transcribe_audio(model, audio_path, interval=3, include_timestamps=False):
+    """
+    Transcribe audio file to subtitles.
+
+    Args:
+        model: Whisper model.
+        audio_path (str): Path to the audio file.
         interval (int): Interval in seconds for splitting text segments.
         include_timestamps (bool): Whether to include timestamps in the output.
 
     Returns:
-        list of str: Transcribed text lines with optional timestamps.
+        list: Transcribed text lines.
     """
-    temp_audio_path = "temp_audio.wav"
+    result = model.transcribe(audio_path, word_timestamps=True)
+    segments = result.get("segments", [])
 
-    # Extract audio for the segment
-    ffmpeg.input(video_path, ss=start_time, t=duration).output(
-        temp_audio_path, format="wav"
-    ).run(quiet=True)
-
-    # Transcribe the audio
-    result = model.transcribe(temp_audio_path, word_timestamps=True)
-    os.remove(temp_audio_path)  # Clean up temporary file
-
-    # Organize transcription into 2-second segments
     lines = []
-    current_time = start_time
+    current_time = 0
     segment_text = []
 
-    for word_info in result["segments"]:
-        word_start = word_info["start"]
-        word_text = word_info["text"]
+    for segment in segments:
+        word_start = segment["start"]
+        word_text = segment["text"]
 
         if word_start >= current_time + interval:
             if include_timestamps:
@@ -77,92 +105,66 @@ def transcribe_video_segment(
     return lines
 
 
-def transcribe_videos(
-    input_folder,
+def process_video(
+    video_path,
     output_folder,
     model_name="base",
-    segment_size_mb=5,
-    interval=2,
+    interval=3,
     include_timestamps=False,
+    segment_duration=None,
 ):
     """
-    Transcribe video files in the input_folder and save subtitles as .txt files.
+    Process a video file to generate audio and subtitles.
 
     Args:
-        input_folder (str): Path to the folder containing video files.
-        output_folder (str): Path to save transcribed .txt files.
-        model_name (str): Whisper model name to use for transcription.
-        segment_size_mb (int): Maximum size of each segment in MB.
+        video_path (str): Path to the video file.
+        output_folder (str): Path to save the output files.
+        model_name (str): Whisper model name.
         interval (int): Interval in seconds for splitting text segments.
-        include_timestamps (bool): Whether to include timestamps in the output.
+        include_timestamps (bool): Whether to include timestamps in subtitles.
+        segment_duration (int): Optional duration of each audio segment in seconds.
     """
+    print(f"Processing video: {video_path}")
+
+    # Prepare paths
+    video_name = os.path.splitext(os.path.basename(video_path))[0]
+    audio_folder = output_folder
+    subtitle_file = os.path.join(output_folder, f"{video_name}.txt")
+
+    # Remove existing subtitle file
+    if os.path.exists(subtitle_file):
+        os.remove(subtitle_file)
+
+    # Extract audio
+    audio_files = extract_audio(video_path, audio_folder, segment_duration)
+
     # Load Whisper model
-    print("Loading Whisper model...")
     model = whisper.load_model(model_name)
 
-    # Process each video file in the input folder
-    for file_name in os.listdir(input_folder):
-        input_file_path = os.path.join(input_folder, file_name)
+    # Transcribe audio
+    for audio_file in audio_files:
+        print(f"Transcribing audio: {audio_file}")
+        lines = transcribe_audio(model, audio_file, interval, include_timestamps)
 
-        # Skip non-video files
-        if not file_name.lower().endswith((".mp4", ".mkv", ".avi", ".mov")):
-            print(f"Skipping non-video file: {file_name}")
-            continue
+        # Append subtitles
+        with open(subtitle_file, "a", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n\n")
 
-        print(f"Processing file: {file_name}")
-
-        # Prepare the output .txt file path
-        output_file_path = os.path.join(
-            output_folder, f"{os.path.splitext(file_name)[0]}.txt"
-        )
-        if os.path.exists(output_file_path):
-            os.remove(output_file_path)  # Clean previous results
-
-        # Get video duration and size
-        video_info = ffmpeg.probe(input_file_path)
-        duration = float(video_info["format"]["duration"])  # In seconds
-        file_size = float(video_info["format"]["size"]) / (1024 * 1024)  # In MB
-        segment_duration = duration / (file_size / segment_size_mb)
-
-        # Process the video in segments
-        start_time = 0
-        while start_time < duration:
-            current_duration = min(segment_duration, duration - start_time)
-            if current_duration < interval and start_time + current_duration < duration:
-                # Merge with the next segment if the remainder is too short
-                current_duration += interval
-
-            print(
-                f"Transcribing segment: Start={start_time:.2f}s, Duration={current_duration:.2f}s"
-            )
-
-            # Transcribe the segment
-            lines = transcribe_video_segment(
-                model,
-                input_file_path,
-                start_time,
-                current_duration,
-                interval,
-                include_timestamps,
-            )
-
-            # Append the transcription to the output file
-            with open(output_file_path, "a", encoding="utf-8") as output_file:
-                output_file.write("\n".join(lines) + "\n\n")
-
-            start_time += current_duration
-
-        print(f"Transcription saved: {output_file_path}")
+        print(f"Subtitles saved: {subtitle_file}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Transcribe video files into text subtitles."
+        description="Process video files to audio and subtitles."
     )
     parser.add_argument(
-        "--timestamps",
-        action="store_true",
-        help="Include timestamps in the output subtitles.",
+        "--timestamps", action="store_true", help="Include timestamps in subtitles."
+    )
+    parser.add_argument(
+        "--segment_duration",
+        type=int,
+        default=None,
+        help="Split audio into segments of this duration.",
     )
     args = parser.parse_args()
 
@@ -171,7 +173,14 @@ if __name__ == "__main__":
     input_folder = os.path.join(project_root, "files")
     output_folder = input_folder
 
-    # Run the transcription process
-    transcribe_videos(
-        input_folder, output_folder, interval=2, include_timestamps=args.timestamps
-    )
+    # Process each video in the input folder
+    for file_name in os.listdir(input_folder):
+        if file_name.lower().endswith((".mp4", ".mkv", ".avi", ".mov")):
+            video_path = os.path.join(input_folder, file_name)
+            process_video(
+                video_path,
+                output_folder,
+                interval=3,
+                include_timestamps=args.timestamps,
+                segment_duration=args.segment_duration,
+            )
