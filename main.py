@@ -75,6 +75,7 @@ def process_video(video_path, output_folder, include_timestamps=False):
         output_folder (str): Path where output files will be saved.
         include_timestamps (bool): Whether to include timestamps in subtitles.
     """
+    os.makedirs(output_folder, exist_ok=True)
     print(f"Processing video: {video_path}")
 
     # Prepare paths
