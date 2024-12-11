@@ -36,13 +36,10 @@ def transcribe_audio(audio_path, include_timestamps=False):
     """
     # 加载模型
     model = whisper.load_model("medium")
-    
+
     # 设置中文识别
     result = model.transcribe(
-        audio_path,
-        language="zh",
-        task="transcribe",
-        word_timestamps=True
+        audio_path, language="zh", task="transcribe", word_timestamps=True
     )
 
     segments = result["segments"]
