@@ -20,6 +20,11 @@ def format_timestamp(seconds):
 def extract_audio(video_path, output_path):
     """
     Extract entire audio from a video file as a single WAV file.
+    Args:
+        video_path (str): Path to the input video file.
+        output_path (str): Path where the audio file will be saved.
+    Returns:
+        str: Path to the extracted audio file.
     """
     audio_file = os.path.join(
         output_path, f"{os.path.splitext(os.path.basename(video_path))[0]}.wav"
@@ -33,11 +38,16 @@ def extract_audio(video_path, output_path):
 def transcribe_audio(audio_path, include_timestamps=False):
     """
     Transcribe audio file using Whisper.
+    Args:
+        audio_path (str): Path to the audio file to transcribe.
+        include_timestamps (bool): Whether to include timestamps in the output.
+    Returns:
+        list: List of transcribed lines, optionally with timestamps.
     """
-    # 加载模型
+    # Load the model
     model = whisper.load_model("medium")
 
-    # 设置中文识别
+    # Configure Chinese transcription
     result = model.transcribe(
         audio_path, language="zh", task="transcribe", word_timestamps=True
     )
@@ -60,6 +70,10 @@ def transcribe_audio(audio_path, include_timestamps=False):
 def process_video(video_path, output_folder, include_timestamps=False):
     """
     Process a video file to generate audio and subtitles.
+    Args:
+        video_path (str): Path to the input video file.
+        output_folder (str): Path where output files will be saved.
+        include_timestamps (bool): Whether to include timestamps in subtitles.
     """
     print(f"Processing video: {video_path}")
 
