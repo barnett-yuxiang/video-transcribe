@@ -31,3 +31,11 @@ format:
 check-format:
 	isort --check-only .
 	black --check .
+
+# Install production dependencies
+install:
+	pip install -r requirements.txt
+
+# Install development dependencies (includes production)
+install-dev:
+	pip install -r requirements-dev.txt
