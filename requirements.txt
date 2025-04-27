@@ -1,2 +1,4 @@
 ffmpeg-python
 whisper
+yt_dlp
+pytest
