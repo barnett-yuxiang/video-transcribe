@@ -21,3 +21,13 @@ ffprobe-video:
 # Usage: make ffprobe-audio file=./files/IHNzOHi8sJs.mp4
 ffprobe-audio:
 	ffprobe -v error -show_streams -select_streams a:0 -show_entries stream=codec_name,channels,sample_rate,bit_rate "$(file)"
+
+# Format Python code using isort and black
+format:
+	isort .
+	black .
+
+# Check code style without making changes
+check-format:
+	isort --check-only .
+	black --check .

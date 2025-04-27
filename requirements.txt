@@ -2,3 +2,5 @@ ffmpeg-python
 whisper
 yt_dlp
 pytest
+isort
+black

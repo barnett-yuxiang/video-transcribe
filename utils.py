@@ -1,5 +1,6 @@
 import re
 
+
 def is_youtube_url(url):
     """
     Check if the given string is a YouTube URL.
