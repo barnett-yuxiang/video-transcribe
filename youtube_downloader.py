@@ -40,31 +40,21 @@ def download(url, output_folder):
             print("No video resolutions found.")
             return None
 
-        # Find 360p format with a valid url
-        target_format = None
-        for f in formats:
-            if (
-                f.get('vcodec', 'none') != 'none'
-                and f.get('height') == 360
-                and f.get('url')  # Ensure url field exists and is not empty
-            ):
-                target_format = f
-                break
-        if not target_format:
-            raise Exception("360p resolution with valid download url not available for this video.")
-
-        # Download 360p video
-        print(f"Downloading 360p video to {output_path} ...")
-        ydl_opts = {
-            'quiet': False,
-            'format': f"{target_format['format_id']}",
-            'outtmpl': output_path,
-        }
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl_download:
-                ydl_download.download([url])
-            print(f"Downloaded: {output_path}")
-            return output_path
-        except Exception as e:
-            print(f"Failed to download video: {e}")
-            return None
+    # Prefer format 18, then 360p mp4, then other available formats
+    ydl_opts = {
+        'quiet': False,
+        'format': '18/best[height<=360][ext=mp4]/best',
+        'outtmpl': output_path,
+        'merge_output_format': 'mp4',
+        'noplaylist': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'cookiesfrombrowser': ('chrome',),
+    }
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl_download:
+            ydl_download.download([url])
+        print(f"Downloaded: {output_path}")
+        return output_path
+    except Exception as e:
+        print(f"Failed to download video: {e}")
+        return None
