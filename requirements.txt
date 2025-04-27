@@ -1,2 +1,3 @@
 ffmpeg-python
-whisper
+openai-whisper
+yt_dlp

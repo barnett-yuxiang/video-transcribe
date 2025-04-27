@@ -1,19 +1,23 @@
 # Video to Audio and Subtitles Processor
 
-This project processes video files to extract audio and generate subtitles using the Whisper model.
+This project processes video files or YouTube links to extract audio and generate subtitles using the Whisper model.
 
 ## Features
 
-- Extracts audio from video files and saves it as WAV files.
-- Generates subtitles from the extracted audio.
+- Extracts audio from video files (e.g., `.mp4`, `.mov`) and saves as **WAV** files.
+- Downloads YouTube videos at 360p (if a YouTube URL is provided).
+- Generates subtitles from the extracted audio using OpenAI Whisper (supports Chinese and other languages).
 - Optionally includes timestamps in the subtitles.
+- Simple command-line interface with flexible options.
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.10+
 - ffmpeg
-- whisper
-- argparse (part of Python standard library)
+- openai-whisper
+- yt-dlp
+- argparse (Python standard library)
+- Ensure `ffmpeg` is installed and available in your PATH.
 
 ## Installation
 
@@ -31,23 +35,47 @@ This project processes video files to extract audio and generate subtitles using
 
 3. Install the required packages:
     ```sh
-    pip install -r requirements.txt
+    make install-dev
     ```
-
-4. Ensure `ffmpeg` is installed and available in your PATH.
 
 ## Usage
 
-1. Place your video files (e.g., `example.mp4`) in the `files` directory.
+You can process either a local video file or a YouTube URL.
+
+### Process a local video file
+
+1. Place your video files (e.g., `example.mp4`) in the `files` directory (or provide the full path).
 
 2. Run the script:
     ```sh
-    python main.py --timestamps
+    python main.py files/example.mp4 --timestamps
     ```
 
-    The `--timestamps` flag is optional. If provided, the generated subtitles will include timestamps.
+### Process a YouTube video
 
-3. The extracted audio and generated subtitles will be saved in the [files](http://_vscodecontentref_/5) directory.
+1. Run the script with a YouTube URL:
+    ```sh
+    python main.py "https://www.youtube.com/watch?v=xxxxxxx" --timestamps
+    ```
+
+    The video will be downloaded to the `files` directory and processed automatically.
+
+### Command-line options
+
+- `uri` (positional): Local file path or YouTube URL.
+- `-t`, `--timestamps`: Include timestamps in the subtitles.
+- `-d`, `--download-only`: Only download the YouTube video to the `files` directory, do not process.
+
+### Output
+
+- Extracted audio: `{video_id or filename}.wav` in the `files` directory.
+- Subtitles: `{video_id or filename}.txt` in the `files` directory.
+
+## Example
+
+```sh
+python main.py "https://www.youtube.com/watch?v=xxxxxxx" --timestamps
+```
 
 ## License
 

@@ -1,8 +1,11 @@
+import argparse
 import os
+from datetime import timedelta
+
 import ffmpeg
 import whisper
-from datetime import timedelta
-import argparse
+
+from utils import is_youtube_url
 
 
 def format_timestamp(seconds):
@@ -19,7 +22,7 @@ def format_timestamp(seconds):
 
 def extract_audio(video_path, output_path):
     """
-    Extract entire audio from a video file as a single WAV file.
+    Extract audio from a video file and save as a WAV file.
     Args:
         video_path (str): Path to the input video file.
         output_path (str): Path where the audio file will be saved.
@@ -37,7 +40,7 @@ def extract_audio(video_path, output_path):
 
 def transcribe_audio(audio_path, include_timestamps=False):
     """
-    Transcribe audio file using Whisper.
+    Transcribe an audio file using Whisper.
     Args:
         audio_path (str): Path to the audio file to transcribe.
         include_timestamps (bool): Whether to include timestamps in the output.
@@ -57,6 +60,7 @@ def transcribe_audio(audio_path, include_timestamps=False):
 
     for segment in segments:
         if include_timestamps:
+            # Format and include timestamps in the subtitle line
             start = format_timestamp(segment["start"])
             end = format_timestamp(segment["end"])
             text = segment["text"].strip()
@@ -107,17 +111,51 @@ if __name__ == "__main__":
         description="Process video files to audio and subtitles."
     )
     parser.add_argument(
-        "--timestamps", action="store_true", help="Include timestamps in subtitles."
+        "uri",
+        type=str,
+        help="Input resource URI: local file path or video URL (YouTube, etc.).",
+    )
+    parser.add_argument(
+        "-t",
+        "--timestamps",
+        action="store_true",
+        help="Include timestamps in subtitles.",
+    )
+    parser.add_argument(
+        "-d",
+        "--download-only",
+        action="store_true",
+        help="Only download the video to files directory, do not process.",
     )
     args = parser.parse_args()
 
-    # Define paths
+    uri = args.uri
     project_root = os.path.dirname(os.path.abspath(__file__))
-    input_folder = os.path.join(project_root, "files")
-    output_folder = input_folder
+    output_folder = os.path.join(project_root, "files")
 
-    # Process each video in the input folder
-    for file_name in os.listdir(input_folder):
-        if file_name.lower().endswith((".mp4", ".mkv", ".avi", ".mov")):
-            video_path = os.path.join(input_folder, file_name)
-            process_video(video_path, output_folder, include_timestamps=args.timestamps)
+    # Ensure the files directory exists
+    os.makedirs(output_folder, exist_ok=True)
+
+    if is_youtube_url(uri):
+        from youtube_downloader import download
+
+        try:
+            video_path = download(uri, output_folder)
+            if video_path:
+                if args.download_only:
+                    print(f"Video downloaded to: {video_path}")
+                else:
+                    process_video(
+                        video_path, output_folder, include_timestamps=args.timestamps
+                    )
+            else:
+                print(f"Error: Failed to download video from {uri}")
+        except Exception as e:
+            print(f"Error: {e}")
+    elif os.path.isfile(uri):
+        if args.download_only:
+            print("Download-only mode is only applicable for URLs.")
+        else:
+            process_video(uri, output_folder, include_timestamps=args.timestamps)
+    else:
+        print(f"Input not found or not supported: {uri}")

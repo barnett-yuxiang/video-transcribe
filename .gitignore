@@ -1,5 +1,8 @@
 .DS_Store
 .venv
+.qodo
+__pycache__
+.pytest_cache
 
 files/*.mp4
 files/*.txt
