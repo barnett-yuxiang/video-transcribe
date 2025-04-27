@@ -40,14 +40,18 @@ def download(url, output_folder):
             print("No video resolutions found.")
             return None
 
-        # Find 360p format
+        # Find 360p format with a valid url
         target_format = None
         for f in formats:
-            if f.get('vcodec', 'none') != 'none' and f.get('height') == 360:
+            if (
+                f.get('vcodec', 'none') != 'none'
+                and f.get('height') == 360
+                and f.get('url')  # Ensure url field exists and is not empty
+            ):
                 target_format = f
                 break
         if not target_format:
-            raise Exception("360p resolution not available for this video.")
+            raise Exception("360p resolution with valid download url not available for this video.")
 
         # Download 360p video
         print(f"Downloading 360p video to {output_path} ...")
