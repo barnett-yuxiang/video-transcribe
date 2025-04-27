@@ -148,6 +148,8 @@ if __name__ == "__main__":
                     process_video(
                         video_path, output_folder, include_timestamps=args.timestamps
                     )
+            else:
+                print(f"Error: Failed to download video from {uri}")
         except Exception as e:
             print(f"Error: {e}")
     elif os.path.isfile(uri):
