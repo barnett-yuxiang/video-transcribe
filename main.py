@@ -112,7 +112,10 @@ if __name__ == "__main__":
         "uri", type=str, help="Input resource URI: local file path or video URL (YouTube, etc.)."
     )
     parser.add_argument(
-        "--timestamps", action="store_true", help="Include timestamps in subtitles."
+        "-t", "--timestamps", action="store_true", help="Include timestamps in subtitles."
+    )
+    parser.add_argument(
+        "-d", "--download-only", action="store_true", help="Only download the video to files directory, do not process."
     )
     args = parser.parse_args()
 
@@ -128,10 +131,16 @@ if __name__ == "__main__":
         try:
             video_path = download(uri, output_folder)
             if video_path:
-                process_video(video_path, output_folder, include_timestamps=args.timestamps)
+                if args.download_only:
+                    print(f"Video downloaded to: {video_path}")
+                else:
+                    process_video(video_path, output_folder, include_timestamps=args.timestamps)
         except Exception as e:
             print(f"Error: {e}")
     elif os.path.isfile(uri):
-        process_video(uri, output_folder, include_timestamps=args.timestamps)
+        if args.download_only:
+            print("Download-only mode is only applicable for URLs.")
+        else:
+            process_video(uri, output_folder, include_timestamps=args.timestamps)
     else:
         print(f"Input not found or not supported: {uri}")
