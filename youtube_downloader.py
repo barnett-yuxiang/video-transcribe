@@ -19,8 +19,35 @@ def download(url, output_folder):
         print("Please install yt-dlp: pip install yt-dlp")
         return None
 
-    # Extract video ID from URL using yt_dlp
+    # Try to load cookies from browser first (needed for bot detection)
+    # Try Chrome first, then Safari (common on macOS), then Firefox
+    cookie_source = None
+    for browser in ["chrome", "safari", "firefox"]:
+        try:
+            # Quick validation that browser cookies can be accessed
+            with yt_dlp.YoutubeDL(
+                {"quiet": True, "cookiesfrombrowser": (browser,)}
+            ) as test_ydl:
+                # If we get here, cookies loaded successfully
+                cookie_source = browser
+                print(f"Using cookies from {browser.capitalize()} browser")
+                break
+        except Exception:
+            # Browser not available or cookies can't be extracted
+            continue
+
+    if not cookie_source:
+        print(
+            "Warning: Could not load cookies from any browser. "
+            "Download may fail for age-restricted or bot-protected videos."
+        )
+        print("Make sure you're logged into YouTube in Chrome, Safari, or Firefox.")
+
+    # Extract video ID from URL using yt_dlp with cookies
     ydl_id_opts = {"quiet": True, "skip_download": True}
+    if cookie_source:
+        ydl_id_opts["cookiesfrombrowser"] = (cookie_source,)
+
     with yt_dlp.YoutubeDL(ydl_id_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         video_id = info.get("id")
@@ -50,9 +77,13 @@ def download(url, output_folder):
         "outtmpl": output_path,
         "merge_output_format": "mp4",
         "noplaylist": True,
-        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "cookiesfrombrowser": ("chrome",),
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     }
+
+    # Use the same cookie source for downloading
+    if cookie_source:
+        ydl_opts["cookiesfrombrowser"] = (cookie_source,)
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl_download:
             ydl_download.download([url])
