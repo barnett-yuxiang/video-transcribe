@@ -20,17 +20,17 @@ def format_timestamp(seconds):
     return str(td)
 
 
-def extract_audio(video_path, output_path):
+def extract_audio(video_path, output_folder):
     """
     Extract audio from a video file and save as a WAV file.
     Args:
         video_path (str): Path to the input video file.
-        output_path (str): Path where the audio file will be saved.
+        output_folder (str): Directory where the audio file will be saved.
     Returns:
         str: Path to the extracted audio file.
     """
     audio_file = os.path.join(
-        output_path, f"{os.path.splitext(os.path.basename(video_path))[0]}.wav"
+        output_folder, f"{os.path.splitext(os.path.basename(video_path))[0]}.wav"
     )
     ffmpeg.input(video_path).output(
         audio_file, format="wav", acodec="pcm_s16le", ac=1, ar="16000"
@@ -84,7 +84,6 @@ def process_video(video_path, output_folder, include_timestamps=False):
 
     # Prepare paths
     video_name = os.path.splitext(os.path.basename(video_path))[0]
-    audio_file = os.path.join(output_folder, f"{video_name}.wav")
     subtitle_file = os.path.join(output_folder, f"{video_name}.txt")
 
     # Remove existing subtitle file
